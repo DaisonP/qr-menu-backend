@@ -55,4 +55,4 @@ app.get('/qrcode', (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Backend зап
+app.listen(PORT, () => console.log(`Backend запущен на порту ${PORT}`));

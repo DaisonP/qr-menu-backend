@@ -10,7 +10,16 @@ app.use(express.json());
 
 const db = new sqlite3.Database(path.resolve(__dirname, '../database/db.sqlite'));
 
+// Создание таблиц
 db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS restaurant (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    name TEXT NOT NULL
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+  )`);
   db.run(`CREATE TABLE IF NOT EXISTS dishes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -19,6 +28,50 @@ db.serialize(() => {
   )`);
 });
 
+// Эндпоинт для получения названия ресторана
+app.get('/restaurant', (req, res) => {
+  db.get('SELECT name FROM restaurant WHERE id = 1', (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ name: row ? row.name : '' });
+  });
+});
+
+// Эндпоинт для установки/обновления названия ресторана
+app.post('/restaurant', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Введите название ресторана' });
+  db.run(
+    'INSERT INTO restaurant (id, name) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name',
+    [name],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    }
+  );
+});
+
+// Эндпоинты для категорий
+app.get('/categories', (req, res) => {
+  db.all('SELECT * FROM categories', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/category', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: "Введите название категории" });
+  db.run(
+    'INSERT INTO categories (name) VALUES (?)',
+    [name],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID });
+    }
+  );
+});
+
+// Эндпоинты для блюд (уже были)
 app.get('/menu', (req, res) => {
   db.all('SELECT * FROM dishes', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
